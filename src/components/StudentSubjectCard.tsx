@@ -34,9 +34,17 @@ export default function StudentSubjectCard({
       <div className="flex justify-between items-start mb-6">
         <div>
           <h3 className="text-lg font-bold text-slate-800 mb-2 leading-tight pr-4">{subject.name}</h3>
-          <span className="inline-flex items-center px-3 py-1 rounded-lg bg-indigo-50 text-indigo-700 font-bold text-sm border border-indigo-100 shadow-sm">
-            Grade: {calculateGrade(subject)}
-          </span>
+          <div className="flex flex-wrap gap-2 mb-2">
+            <span className="inline-flex items-center px-3 py-1 rounded-lg bg-slate-100 text-slate-600 font-bold text-sm border border-slate-200 shadow-sm">
+              หน่วยกิต: {subject.credits || 1.0}
+            </span>
+            <span className="inline-flex items-center px-3 py-1 rounded-lg bg-sky-50 text-sky-700 font-bold text-sm border border-sky-100 shadow-sm">
+              คะแนน: {subject.assignments.reduce((sum, a) => sum + a.score, 0)} / {subject.assignments.reduce((sum, a) => sum + a.maxScore, 0)}
+            </span>
+            <span className="inline-flex items-center px-3 py-1 rounded-lg bg-indigo-50 text-indigo-700 font-bold text-sm border border-indigo-100 shadow-sm">
+              Grade: {calculateGrade(subject)}
+            </span>
+          </div>
         </div>
         <button className="text-slate-400 hover:text-red-500 hover:bg-red-50 p-2 rounded-xl transition-colors opacity-0 group-hover:opacity-100 flex-shrink-0" onClick={onDelete}>
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" /></svg>

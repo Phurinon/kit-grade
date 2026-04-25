@@ -4,7 +4,7 @@ import * as XLSX from 'xlsx'
 
 export default function TeacherApp({ data, updateData }: { data: TeacherData, updateData: (d: TeacherData) => void }) {
   const [showSubjectForm, setShowSubjectForm] = useState(false)
-  const [newSubject, setNewSubject] = useState({ name: '', gradeType: 'numeric' as 'numeric'|'letter', assignmentCount: '', studentCount: '' })
+  const [newSubject, setNewSubject] = useState({ name: '', credits: '1.0', gradeType: 'letter' as 'letter'|'numeric', assignmentCount: '', studentCount: '' })
   const [setupAssignments, setSetupAssignments] = useState<TeacherAssignmentConfig[]>([])
   const [isSettingUp, setIsSettingUp] = useState(false)
   const [activeSubjectId, setActiveSubjectId] = useState<string | null>(null)
@@ -12,6 +12,8 @@ export default function TeacherApp({ data, updateData }: { data: TeacherData, up
 
   const [showEditModal, setShowEditModal] = useState(false)
   const [editingAssignments, setEditingAssignments] = useState<TeacherAssignmentConfig[]>([])
+  const [showAddStudent, setShowAddStudent] = useState(false)
+  const [addStudentId, setAddStudentId] = useState('')
 
   const openEditModal = () => {
     const subject = data.subjects.find(s => s.id === activeSubjectId)
@@ -44,6 +46,37 @@ export default function TeacherApp({ data, updateData }: { data: TeacherData, up
     setShowEditModal(false)
   }
 
+  const handleAddStudent = () => {
+    const trimmed = addStudentId.trim()
+    if (!trimmed || !activeSubjectId) return
+    const subject = data.subjects.find(s => s.id === activeSubjectId)
+    if (!subject) return
+    if (subject.students.find(st => st.id === trimmed)) {
+      alert(`มีนักเรียนชื่อ/เลขที่ "${trimmed}" อยู่แล้ว`)
+      return
+    }
+    updateData({
+      subjects: data.subjects.map(s =>
+        s.id === activeSubjectId
+          ? { ...s, students: [...s.students, { id: trimmed, scores: {} }] }
+          : s
+      )
+    })
+    setAddStudentId('')
+    setShowAddStudent(false)
+  }
+
+  const handleDeleteStudent = (studentId: string) => {
+    if (!activeSubjectId) return
+    updateData({
+      subjects: data.subjects.map(s =>
+        s.id === activeSubjectId
+          ? { ...s, students: s.students.filter(st => st.id !== studentId) }
+          : s
+      )
+    })
+  }
+
   const handleStartSetup = () => {
     const count = parseInt(newSubject.assignmentCount) || 1
     const defaultAssignments = Array.from({ length: count }, (_, i) => ({
@@ -71,6 +104,7 @@ export default function TeacherApp({ data, updateData }: { data: TeacherData, up
     const subject: TeacherSubject = {
       id: Date.now().toString(),
       name: newSubject.name || 'วิชาใหม่',
+      credits: parseFloat(newSubject.credits) || 1.0,
       gradeType: newSubject.gradeType,
       assignments: setupAssignments,
       students: defaultStudents
@@ -80,7 +114,7 @@ export default function TeacherApp({ data, updateData }: { data: TeacherData, up
     setShowSubjectForm(false)
     setIsSettingUp(false)
     setNewSubjectStudents([])
-    setNewSubject({ name: '', gradeType: 'numeric', assignmentCount: '3', studentCount: '10' })
+    setNewSubject({ name: '', credits: '1.0', gradeType: 'numeric', assignmentCount: '3', studentCount: '10' })
   }
 
   const handleImportForNewSubject = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -163,14 +197,14 @@ export default function TeacherApp({ data, updateData }: { data: TeacherData, up
     const avg = (totalScore / totalMaxScore) * 100
     
     if (subject.gradeType === 'letter') {
-      if (avg >= 80) return 'A'
-      if (avg >= 75) return 'B+'
-      if (avg >= 70) return 'B'
-      if (avg >= 65) return 'C+'
-      if (avg >= 60) return 'C'
-      if (avg >= 55) return 'D+'
-      if (avg >= 50) return 'D'
-      return 'F'
+      if (avg >= 80) return '4.0'
+      if (avg >= 75) return '3.5'
+      if (avg >= 70) return '3.0'
+      if (avg >= 65) return '2.5'
+      if (avg >= 60) return '2.0'
+      if (avg >= 55) return '1.5'
+      if (avg >= 50) return '1.0'
+      return '0.0'
     }
     return avg.toFixed(2)
   }
@@ -185,7 +219,7 @@ export default function TeacherApp({ data, updateData }: { data: TeacherData, up
       subject.assignments.forEach(a => {
         rowData[`${a.name} (เต็ม ${a.maxScore})`] = st.scores[a.id] !== undefined ? st.scores[a.id] : ''
       })
-      rowData['คะแนนรวม'] = calculateStudentGrade(subject, st)
+      rowData['เกรด'] = calculateStudentGrade(subject, st)
       return rowData
     })
 
@@ -278,7 +312,7 @@ export default function TeacherApp({ data, updateData }: { data: TeacherData, up
                 <div className="mt-auto space-y-2 text-sm text-slate-600">
                   <p className="flex justify-between"><span>นักเรียน:</span> <span className="font-medium text-slate-800">{s.students.length} คน</span></p>
                   <p className="flex justify-between"><span>งานทั้งหมด:</span> <span className="font-medium text-slate-800">{s.assignments.length} ชิ้น</span></p>
-                  <p className="flex justify-between"><span>รูปแบบเกรด:</span> <span className="font-medium text-slate-800">{s.gradeType === 'letter' ? 'A-F' : 'เปอร์เซ็นต์'}</span></p>
+                  <p className="flex justify-between"><span>รูปแบบเกรด:</span> <span className="font-medium text-slate-800">{s.gradeType === 'letter' ? '4.0-0.0' : 'เปอร์เซ็นต์'}</span></p>
                 </div>
                 <button className="w-full mt-6 py-2.5 bg-slate-50 text-teal-600 font-medium rounded-xl group-hover:bg-teal-50 transition-colors">
                   จัดการคะแนน ➔
@@ -308,6 +342,9 @@ export default function TeacherApp({ data, updateData }: { data: TeacherData, up
               <button className="px-4 py-2 bg-white border border-teal-200 text-teal-600 hover:bg-teal-50 font-medium rounded-lg transition-colors text-sm shadow-sm" onClick={openEditModal}>
                  ตั้งค่างาน
               </button>
+              <button className="px-4 py-2 bg-violet-50 hover:bg-violet-100 text-violet-700 font-medium rounded-lg transition-colors text-sm border border-violet-200 flex items-center gap-1" onClick={() => { setShowAddStudent(v => !v); setAddStudentId('') }}>
+                 <span>➕</span> เพิ่มนักเรียน
+              </button>
               <label className="px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-medium rounded-lg transition-colors text-sm border border-indigo-200 flex items-center gap-1 cursor-pointer">
                  <span>📥</span> นำเข้ารายชื่อ
                  <input type="file" accept=".xlsx,.xls" onChange={importStudentsFromExcel} className="hidden" />
@@ -331,14 +368,21 @@ export default function TeacherApp({ data, updateData }: { data: TeacherData, up
                       </div>
                     </th>
                   ))}
-                  <th className="p-4 font-bold text-teal-700 bg-teal-50 w-32 text-center sticky right-0 z-20 shadow-[-4px_0_10px_rgba(0,0,0,0.02)]">คะแนนรวม</th>
+                  <th className="p-4 font-bold text-teal-700 bg-teal-50 w-32 text-center sticky right-0 z-20 shadow-[-4px_0_10px_rgba(0,0,0,0.02)]">เกรด</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {activeSubject.students.map(st => (
-                  <tr key={st.id} className="hover:bg-slate-50/50 transition-colors">
+                  <tr key={st.id} className="hover:bg-slate-50/50 transition-colors group/row">
                     <td className="p-4 font-medium text-slate-800 sticky left-0 bg-white border-r border-slate-200 z-10 text-center">
-                      {st.id}
+                      <div className="flex items-center justify-center gap-1">
+                        <span>{st.id}</span>
+                        <button
+                          className="opacity-0 group-hover/row:opacity-100 text-slate-300 hover:text-red-500 transition-all p-0.5 rounded"
+                          onClick={() => handleDeleteStudent(st.id)}
+                          title="ลบนักเรียน"
+                        >✕</button>
+                      </div>
                     </td>
                     {activeSubject.assignments.map(a => (
                       <td key={a.id} className="p-2 border-r border-slate-100">
@@ -353,11 +397,38 @@ export default function TeacherApp({ data, updateData }: { data: TeacherData, up
                         />
                       </td>
                     ))}
-                    <td className="p-4 text-center sticky right-0 bg-white z-10 shadow-[-4px_0_10px_rgba(0,0,0,0.02)] font-bold text-teal-600 bg-teal-50/30">
-                      {calculateStudentGrade(activeSubject, st)}
+                    <td className="p-4 text-center sticky right-0 bg-white z-10 shadow-[-4px_0_10px_rgba(0,0,0,0.02)] bg-teal-50/30">
+                      <div className="font-bold text-teal-600 text-lg">{calculateStudentGrade(activeSubject, st)}</div>
+                      <div className="text-xs text-teal-600 font-medium whitespace-nowrap mt-0.5">
+                        ({activeSubject.assignments.reduce((sum, a) => sum + (st.scores[a.id] || 0), 0)} / {activeSubject.assignments.reduce((sum, a) => sum + a.maxScore, 0)})
+                      </div>
                     </td>
                   </tr>
                 ))}
+                {showAddStudent && (
+                  <tr className="bg-violet-50/40">
+                    <td className="p-3 sticky left-0 bg-violet-50 border-r border-violet-100 z-10" colSpan={1}>
+                      <input
+                        autoFocus
+                        type="text"
+                        value={addStudentId}
+                        onChange={e => setAddStudentId(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter') handleAddStudent(); if (e.key === 'Escape') setShowAddStudent(false) }}
+                        placeholder="เลขที่ / ชื่อ"
+                        className="w-full px-3 py-2 bg-white border-2 border-violet-400 rounded-lg outline-none text-center text-sm font-medium"
+                      />
+                    </td>
+                    {activeSubject.assignments.map(a => (
+                      <td key={a.id} className="p-2 border-r border-violet-100 bg-violet-50/30" />
+                    ))}
+                    <td className="p-3 sticky right-0 bg-violet-50 z-10">
+                      <div className="flex gap-1 justify-center">
+                        <button className="px-3 py-1.5 bg-violet-600 text-white text-xs font-medium rounded-lg hover:bg-violet-700" onClick={handleAddStudent}>เพิ่ม</button>
+                        <button className="px-3 py-1.5 bg-slate-200 text-slate-600 text-xs font-medium rounded-lg hover:bg-slate-300" onClick={() => setShowAddStudent(false)}>ยกเลิก</button>
+                      </div>
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -381,10 +452,14 @@ export default function TeacherApp({ data, updateData }: { data: TeacherData, up
                     <input type="text" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500/50 outline-none" placeholder="เช่น คณิตศาสตร์" value={newSubject.name} onChange={e => setNewSubject({...newSubject, name: e.target.value})} />
                   </div>
                   <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">หน่วยกิต</label>
+                    <input type="number" step="0.5" min="0.5" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500/50 outline-none" value={newSubject.credits} onChange={e => setNewSubject({...newSubject, credits: e.target.value})} />
+                  </div>
+                  <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">รูปแบบการตัดเกรด</label>
                     <select className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500/50 outline-none" value={newSubject.gradeType} onChange={e => setNewSubject({...newSubject, gradeType: e.target.value as 'numeric'|'letter'})}>
                       <option value="numeric">เปอร์เซ็นต์ (0-100)</option>
-                      <option value="letter">เกรด A-F</option>
+                      <option value="letter">เกรด 4.0-0.0</option>
                     </select>
                   </div>
                   <div className="grid grid-cols-2 gap-4">

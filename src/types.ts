@@ -11,6 +11,7 @@ export interface Assignment {
 export interface Subject {
   id: string
   name: string
+  credits: number
   gradeType: 'numeric' | 'letter'
   assignments: Assignment[]
 }
@@ -34,6 +35,7 @@ export interface TeacherStudent {
 export interface TeacherSubject {
   id: string
   name: string
+  credits: number
   gradeType: 'numeric' | 'letter'
   assignments: TeacherAssignmentConfig[]
   students: TeacherStudent[]

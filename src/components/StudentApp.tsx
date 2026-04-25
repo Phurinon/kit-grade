@@ -4,13 +4,16 @@ import StudentSubjectCard from './StudentSubjectCard'
 
 export default function StudentApp({ data, updateData }: { data: StudentData, updateData: (d: StudentData) => void }) {
   const [newSubjectName, setNewSubjectName] = useState('')
-  const [newSubjectType, setNewSubjectType] = useState<'numeric' | 'letter'>('numeric')
+  const [newSubjectType, setNewSubjectType] = useState<'numeric' | 'letter'>('letter')
+  const [newSubjectCredits, setNewSubjectCredits] = useState('1.0')
 
   const addSubject = () => {
     if (newSubjectName.trim()) {
+      const creditsNum = parseFloat(newSubjectCredits) || 1.0;
       const newSubject: Subject = {
         id: Date.now().toString(),
         name: newSubjectName,
+        credits: creditsNum,
         gradeType: newSubjectType,
         assignments: []
       }
@@ -19,7 +22,8 @@ export default function StudentApp({ data, updateData }: { data: StudentData, up
         subjects: [...data.subjects, newSubject]
       })
       setNewSubjectName('')
-      setNewSubjectType('numeric')
+      setNewSubjectType('letter')
+      setNewSubjectCredits('1.0')
     }
   }
 
@@ -99,33 +103,37 @@ export default function StudentApp({ data, updateData }: { data: StudentData, up
     const avg = (totalScore / totalMaxScore) * 100
     
     if (subject.gradeType === 'letter') {
-      if (avg >= 80) return 'A'
-      if (avg >= 75) return 'B+'
-      if (avg >= 70) return 'B'
-      if (avg >= 65) return 'C+'
-      if (avg >= 60) return 'C'
-      if (avg >= 55) return 'D+'
-      if (avg >= 50) return 'D'
-      return 'F'
+      if (avg >= 80) return '4.0'
+      if (avg >= 75) return '3.5'
+      if (avg >= 70) return '3.0'
+      if (avg >= 65) return '2.5'
+      if (avg >= 60) return '2.0'
+      if (avg >= 55) return '1.5'
+      if (avg >= 50) return '1.0'
+      return '0.0'
     }
     return avg.toFixed(2)
   }
 
   const calculateGPA = (): string => {
-    const gradeValues = { 'A': 4.0, 'B+': 3.5, 'B': 3.0, 'C+': 2.5, 'C': 2.0, 'D+': 1.5, 'D': 1.0, 'F': 0.0 }
     let totalPoints = 0
-    let count = 0
+    let totalCredits = 0
+    
     data.subjects.forEach(subject => {
       const grade = calculateGrade(subject)
       if (grade !== 'N/A') {
-        const value = subject.gradeType === 'letter' 
-          ? gradeValues[grade as keyof typeof gradeValues]
-          : parseFloat(grade) / 25
-        totalPoints += value
-        count++
+        const credits = subject.credits || 1.0
+        let value = 0
+        if (subject.gradeType === 'letter') {
+          value = parseFloat(grade)
+        } else {
+          value = parseFloat(grade) / 25
+        }
+        totalPoints += (value * credits)
+        totalCredits += credits
       }
     })
-    return count === 0 ? 'N/A' : (totalPoints / count).toFixed(2)
+    return totalCredits === 0 ? '0.00' : (totalPoints / totalCredits).toFixed(2)
   }
 
   return (
@@ -157,13 +165,22 @@ export default function StudentApp({ data, updateData }: { data: StudentData, up
             onChange={(e) => setNewSubjectName(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && addSubject()}
           />
+          <input
+            type="number"
+            step="0.5"
+            min="0.5"
+            placeholder="หน่วยกิต"
+            className="w-full md:w-32 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all"
+            value={newSubjectCredits}
+            onChange={(e) => setNewSubjectCredits(e.target.value)}
+          />
           <select 
             className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all text-slate-700 min-w-[180px]"
             value={newSubjectType} 
             onChange={(e) => setNewSubjectType(e.target.value as 'numeric' | 'letter')}
           >
             <option value="numeric">เปอร์เซ็นต์ (0-100)</option>
-            <option value="letter">เกรด A-F</option>
+            <option value="letter">เกรด 4.0-0.0</option>
           </select>
           <button 
             className="px-8 py-3 bg-slate-800 hover:bg-slate-900 text-white font-medium rounded-xl transition-all shadow-sm active:scale-95 whitespace-nowrap"
